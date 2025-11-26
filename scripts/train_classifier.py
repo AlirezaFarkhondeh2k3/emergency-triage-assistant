@@ -24,10 +24,19 @@ def train_baseline(df, base_test_size: float = 0.2):
     X = df["text"].astype(str)
     y = df["category"].astype(str)
 
-    # Allow CI to run on tiny sample data without stratification errors.
-    stratify = y if y.value_counts().min() >= 2 else None
+    n_samples = len(df)
+    n_classes = y.nunique()
+    min_per_class = y.value_counts().min()
 
-    test_size = max(base_test_size, 1 / len(df))
+    # Allow CI to run on tiny sample data without stratification errors.
+    stratify = y if min_per_class >= 2 else None
+
+    # Ensure test set is large enough for stratification (>= n_classes) but still leaves
+    # at least one train sample.
+    test_size = max(int(n_samples * base_test_size), 1)
+    if stratify is not None:
+        test_size = max(test_size, n_classes)
+    test_size = min(test_size, n_samples - 1)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
