@@ -25,5 +25,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Prepare data
+        run: python scripts/prepare_data.py
+
+      - name: Train classifier (generate model artifacts)
+        run: python scripts/train_classifier.py
+
       - name: Run pytest
         run: pytest
