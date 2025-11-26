@@ -1,25 +1,70 @@
-from pathlib import Path
 import os
-import pandas as pd   # keep whatever you already had
+from pathlib import Path
 
-# Repo root (…/emergency-triage-assistant)
+import pandas as pd
+
+
 ROOT = Path(__file__).resolve().parents[1]
-
-# If DATASET_ROOT is set, use that.
-# Otherwise default to repo-relative path: data/raw/event_aware_en
-RAW_DIR = Path(
-    os.getenv(
-        "DATASET_ROOT",
-        ROOT / "data" / "raw" / "event_aware_en"
-    )
-)
+DEFAULT_RAW_DIR = ROOT / "data" / "raw" / "event_aware_en"
+RAW_DIR = Path(os.getenv("DATASET_ROOT", DEFAULT_RAW_DIR))
 
 TSV_FILES = [
-    RAW_DIR / "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_train.tsv",
-    RAW_DIR / "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_dev.tsv",
-    RAW_DIR / "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_test.tsv",
+    "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_train.tsv",
+    "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_dev.tsv",
+    "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_test.tsv",
 ]
 
+# Lightweight fallback rows so CI can run even when the full dataset is absent.
+SAMPLE_ROWS = [
+    {
+        "text": "Severe floods have blocked roads and displaced families.",
+        "event": "flood",
+        "lang": "en",
+        "class_label": "informative",
+    },
+    {
+        "text": "Heavy rain causing flood warnings across the valley.",
+        "event": "flood",
+        "lang": "en",
+        "class_label": "informative",
+    },
+    {
+        "text": "Wildfire approaching suburbs, evacuations underway.",
+        "event": "wildfire",
+        "lang": "en",
+        "class_label": "informative",
+    },
+    {
+        "text": "Fire crews contain brushfire near the highway.",
+        "event": "wildfire",
+        "lang": "en",
+        "class_label": "non_informative",
+    },
+    {
+        "text": "Aftershocks continue after yesterday's earthquake downtown.",
+        "event": "earthquake",
+        "lang": "en",
+        "class_label": "informative",
+    },
+    {
+        "text": "Earthquake tremor felt but no major damage reported.",
+        "event": "earthquake",
+        "lang": "en",
+        "class_label": "non_informative",
+    },
+    {
+        "text": "No damages reported after the small tornado passed.",
+        "event": "tornado",
+        "lang": "en",
+        "class_label": "non_informative",
+    },
+    {
+        "text": "Tornado warnings issued as storm system strengthens.",
+        "event": "tornado",
+        "lang": "en",
+        "class_label": "informative",
+    },
+]
 
 
 def map_event_to_category(event: str) -> str:
@@ -51,34 +96,53 @@ def map_event_to_category(event: str) -> str:
     return "other"
 
 
-def main():
-    # 2. Load and concatenate the three splits
-    dfs = []
-    for name in TSV_FILES:
-        path = RAW_DIR / name
-        print(f"Loading {path}")
-        df = pd.read_csv(path, sep="\t")
-        dfs.append(df)
+def load_raw_data() -> pd.DataFrame:
+    """
+    Load TSV files from RAW_DIR if present; otherwise, fall back to small inline data
+    so CI can train and test without the large dataset.
+    """
+    if RAW_DIR.exists():
+        dfs = []
+        for name in TSV_FILES:
+            path = RAW_DIR / name
+            if not path.exists():
+                raise FileNotFoundError(
+                    f"Expected TSV file missing: {path}. "
+                    "Set DATASET_ROOT to the directory containing the CrisisBench TSV files."
+                )
+            print(f"Loading {path}")
+            df = pd.read_csv(path, sep="\t")
+            dfs.append(df)
 
-    data = pd.concat(dfs, ignore_index=True)
+        return pd.concat(dfs, ignore_index=True)
+
+    print(
+        f"RAW_DIR {RAW_DIR} not found. "
+        "Using small built-in sample to keep CI green. "
+        "Set DATASET_ROOT to point to the full dataset for real training."
+    )
+    return pd.DataFrame(SAMPLE_ROWS)
+
+
+def main():
+    data = load_raw_data()
     print("Raw shape:", data.shape)
 
-    # 3. Keep only English text and drop missing text
+    # Keep only English text and drop missing text
     data = data[data["lang"] == "en"].copy()
     data = data.dropna(subset=["text", "event"])
     print("After lang/text filter:", data.shape)
 
-    # 4. Create the clean crisis category
+    # Create the clean crisis category
     data["category"] = data["event"].apply(map_event_to_category)
 
     # Optional: drop rows mapped to "other" if you want a stricter task
     # data = data[data["category"] != "other"]
 
-    # 5. Keep only the columns we care about
+    # Keep only the columns we care about
     data = data[["text", "event", "category", "class_label"]]
 
-    # 6. Save to repo-relative processed path
-    out_path = Path(__file__).resolve().parents[1] / "data" / "processed" / "incidents.csv"
+    out_path = ROOT / "data" / "processed" / "incidents.csv"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     data.to_csv(out_path, index=False)
     print("Saved cleaned dataset to:", out_path)

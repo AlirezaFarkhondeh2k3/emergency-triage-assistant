@@ -20,12 +20,21 @@ def load_data():
     return df
 
 
-def train_baseline(df: pd.DataFrame):
+def train_baseline(df, base_test_size: float = 0.2):
     X = df["text"].astype(str)
     y = df["category"].astype(str)
 
+    # Allow CI to run on tiny sample data without stratification errors.
+    stratify = y if y.value_counts().min() >= 2 else None
+
+    test_size = max(base_test_size, 1 / len(df))
+
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X,
+        y,
+        test_size=test_size,
+        random_state=42,
+        stratify=stratify,
     )
 
     vectorizer = TfidfVectorizer(
