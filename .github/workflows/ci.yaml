@@ -25,8 +25,57 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Create tiny sample crisis TSVs for CI
+        run: |
+          mkdir -p data/raw/event_aware_en
+          python - << "EOF"
+          import pandas as pd
+          from pathlib import Path
+
+          rows = [
+              {
+                  "id": 1,
+                  "event": "sample_flood",
+                  "source": "ci",
+                  "text": "Flooding downtown, streets are blocked, people stranded.",
+                  "lang": "en",
+                  "lang_confidence": 1.0,
+                  "class_label": "flood",
+              },
+              {
+                  "id": 2,
+                  "event": "sample_earthquake",
+                  "source": "ci",
+                  "text": "Strong earthquake hit the city, buildings are shaking.",
+                  "lang": "en",
+                  "lang_confidence": 1.0,
+                  "class_label": "earthquake",
+              },
+              {
+                  "id": 3,
+                  "event": "sample_other",
+                  "source": "ci",
+                  "text": "Concert in the park, large crowd enjoying the show.",
+                  "lang": "en",
+                  "lang_confidence": 1.0,
+                  "class_label": "other",
+              },
+          ]
+
+          df = pd.DataFrame(rows)
+          base = Path("data/raw/event_aware_en")
+          base.mkdir(parents=True, exist_ok=True)
+
+          for split in [
+              "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_train.tsv",
+              "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_dev.tsv",
+              "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_test.tsv",
+          ]:
+              df.to_csv(base / split, sep="\t", index=False)
+          EOF
+
       - name: Prepare data
-        run: python scripts/prepare_data.py
+        run: DATASET_ROOT=$PWD/data/raw/event_aware_en python scripts/prepare_data.py
 
       - name: Train classifier (generate model artifacts)
         run: python scripts/train_classifier.py

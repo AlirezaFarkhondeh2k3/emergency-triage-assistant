@@ -1,18 +1,25 @@
-import pandas as pd
 from pathlib import Path
+import os
+import pandas as pd   # keep whatever you already had
 
+# Repo root (…/emergency-triage-assistant)
+ROOT = Path(__file__).resolve().parents[1]
 
-# 1. Point to the CrisisBench TSV files on your machine
+# If DATASET_ROOT is set, use that.
+# Otherwise default to repo-relative path: data/raw/event_aware_en
 RAW_DIR = Path(
-    r"D:\College\chat bot project\dataset\crisis_datasets_benchmarks_v1.0\data\event_aware_en"
+    os.getenv(
+        "DATASET_ROOT",
+        ROOT / "data" / "raw" / "event_aware_en"
+    )
 )
 
-
 TSV_FILES = [
-    "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_train.tsv",
-    "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_dev.tsv",
-    "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_test.tsv",
+    RAW_DIR / "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_train.tsv",
+    RAW_DIR / "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_dev.tsv",
+    RAW_DIR / "crisis_consolidated_humanitarian_filtered_lang_en_w_event_info_test.tsv",
 ]
+
 
 
 def map_event_to_category(event: str) -> str:
