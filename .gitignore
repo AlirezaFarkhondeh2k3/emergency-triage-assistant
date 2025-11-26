@@ -6,3 +6,5 @@ __pycache__/
 *.pyc
 
 app/models/artifacts/
+app/models/transformer_artifacts/
+
