@@ -9,7 +9,7 @@ class TriageRequest(BaseModel):
 
 
 app = FastAPI()
-pipeline = TriagePipeline()
+pipeline = TriagePipeline(use_transformer=False)
 
 
 @app.get("/health")

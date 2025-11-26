@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from .models.classifier import IncidentClassifier
+from .models.classifier import IncidentClassifier, TransformerIncidentClassifier
+
 
 
 @dataclass
@@ -10,9 +11,11 @@ class TriageResult:
 
 
 class TriagePipeline:
-    def __init__(self):
-        self.classifier = IncidentClassifier()
-        # later: add extractor, RAG engine, etc.
+    def __init__(self, use_transformer: bool = False):
+        if use_transformer:
+            self.classifier = TransformerIncidentClassifier()
+        else:
+            self.classifier = IncidentClassifier()
 
     def run(self, text: str) -> dict:
         category = self.classifier.predict_one(text)
