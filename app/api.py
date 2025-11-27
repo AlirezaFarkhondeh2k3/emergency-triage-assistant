@@ -9,11 +9,12 @@ class TriageRequest(BaseModel):
     text: str
 
 
-# Toggle via env var; default is baseline (TF-IDF)
-USE_TRANSFORMER = os.getenv("USE_TRANSFORMER", "false").lower() == "true"
-
 app = FastAPI()
-pipeline = TriagePipeline(use_transformer=USE_TRANSFORMER)
+
+# Read from environment: USE_TRANSFORMER=true / false
+_use_transformer = os.getenv("USE_TRANSFORMER", "false").lower() == "true"
+
+pipeline = TriagePipeline(use_transformer=_use_transformer)
 
 
 @app.get("/health")
