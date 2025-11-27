@@ -80,5 +80,15 @@ jobs:
       - name: Train classifier (generate model artifacts)
         run: python scripts/train_classifier.py
 
+      - name: Build RAG index
+        run: python scripts/build_rag_index.py
+
+      - name: Run pytest
+        run: pytest
+
+
+      - name: Train classifier (generate model artifacts)
+        run: python scripts/train_classifier.py
+
       - name: Run pytest
         run: pytest
