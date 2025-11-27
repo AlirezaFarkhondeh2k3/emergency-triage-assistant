@@ -1,70 +1,84 @@
 from dataclasses import dataclass
-from typing import Dict
+from pathlib import Path
+from typing import Any, Dict, List
+
+import json
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 @dataclass
 class RAGResult:
     category: str
     guidance: str
+    retrieved_docs: List[Dict[str, Any]]
 
 
 class IncidentRAG:
     """
-    Very simple RAG-style playbook.
+    Embedding-based RAG over a small incident playbook.
 
-    In a real system this would query a vector store or LLM.
-    For now we return canned guidance text per incident category.
+    Artifacts are built by scripts/build_rag_index.py:
+      - app/models/rag_artifacts/kb.json
+      - app/models/rag_artifacts/embeddings.npy
     """
 
     def __init__(self) -> None:
-        # You can tweak this text later; keep keys in sync with classifier labels.
-        self.playbook: Dict[str, str] = {
-            "earthquake": (
-                "If you are indoors, drop, cover, and hold on. "
-                "Stay away from windows and heavy objects. After shaking stops, "
-                "evacuate to open space and check for injuries and gas leaks."
-            ),
-            "flood": (
-                "Move to higher ground immediately. Avoid walking or driving "
-                "through flood waters. Do not enter flooded buildings until "
-                "authorities declare them safe."
-            ),
-            "hurricane_typhoon_cyclone": (
-                "Stay inside, away from windows. Follow local evacuation orders. "
-                "Avoid coastal areas and be prepared for flooding and power loss."
-            ),
-            "tornado": (
-                "Go to an interior room on the lowest floor, away from windows. "
-                "If outside, lie flat in a low spot and cover your head."
-            ),
-            "landslide": (
-                "Move away from the path of the slide to higher ground. "
-                "Stay clear of valleys and river channels."
-            ),
-            "fire": (
-                "Evacuate immediately using stairs, not elevators. "
-                "Stay low under smoke and close doors behind you."
-            ),
-            "crash_collapse": (
-                "Call emergency services. Keep a safe distance from unstable "
-                "structures and watch for falling debris."
-            ),
-            "explosion": (
-                "Get to a safe location, away from glass and damaged buildings. "
-                "Do not touch suspicious objects. Follow instructions from authorities."
-            ),
-            "epidemic": (
-                "Follow public health guidance. Maintain hygiene, wear masks if advised, "
-                "and avoid crowded areas."
-            ),
-            # Fallback guidance
-            "other": (
-                "Describe the incident clearly to emergency services. "
-                "Follow local authority instructions and prioritize your safety."
-            ),
-        }
+        artifacts_dir = Path(__file__).resolve().parent / "rag_artifacts"
+        kb_path = artifacts_dir / "kb.json"
+        emb_path = artifacts_dir / "embeddings.npy"
 
-    def retrieve(self, category: str) -> RAGResult:
-        # Use specific guidance when available, otherwise fall back to 'other'.
-        guidance = self.playbook.get(category, self.playbook["other"])
-        return RAGResult(category=category, guidance=guidance)
+        if not kb_path.exists() or not emb_path.exists():
+            raise FileNotFoundError(
+                f"RAG artifacts not found in {artifacts_dir}. "
+                "Run scripts/build_rag_index.py first."
+            )
+
+        with kb_path.open("r", encoding="utf-8") as f:
+            self.docs: List[Dict[str, Any]] = json.load(f)
+
+        self.embeddings: np.ndarray = np.load(emb_path)
+
+        # Same model used in build_rag_index
+        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+    def retrieve(
+        self,
+        text: str,
+        category: str | None = None,
+        top_k: int = 3,
+    ) -> RAGResult:
+        """
+        Retrieve top_k guidance docs, optionally filtered by incident category.
+        """
+        # Encode query text
+        query_emb = self.model.encode([text])
+        sims = cosine_similarity(query_emb, self.embeddings)[0]
+
+        # Sort by similarity descending
+        idxs = np.argsort(-sims)
+
+        selected: List[Dict[str, Any]] = []
+        for i in idxs:
+            doc = self.docs[i]
+            if category is not None and doc.get("category") != category:
+                continue
+            selected.append(doc)
+            if len(selected) >= top_k:
+                break
+
+        if not selected:
+            guidance = (
+                "No specific playbook entry found. "
+                "Move away from immediate danger if possible and contact local emergency services."
+            )
+        else:
+            # Simple aggregation: concatenate contents
+            guidance = " ".join(d["content"] for d in selected)
+
+        return RAGResult(
+            category=category or "unknown",
+            guidance=guidance,
+            retrieved_docs=selected,
+        )

@@ -30,7 +30,8 @@ class TriagePipeline:
 
         guidance = None
         if self.rag is not None:
-            rag_result = self.rag.retrieve(category)
+            # pass both the user text and the predicted category
+            rag_result = self.rag.retrieve(text=text, category=category)
             guidance = rag_result.guidance
 
         return {

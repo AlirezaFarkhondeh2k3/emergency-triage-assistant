@@ -8,3 +8,6 @@ __pycache__/
 app/models/artifacts/
 app/models/transformer_artifacts/
 
+app/models/rag_artifacts/
+
+
