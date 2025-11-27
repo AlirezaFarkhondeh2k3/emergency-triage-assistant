@@ -13,8 +13,8 @@ app = FastAPI()
 
 # Read from environment: USE_TRANSFORMER=true / false
 _use_transformer = os.getenv("USE_TRANSFORMER", "false").lower() == "true"
-
 pipeline = TriagePipeline(use_transformer=_use_transformer)
+
 
 
 @app.get("/health")
