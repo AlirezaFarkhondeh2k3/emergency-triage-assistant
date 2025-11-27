@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -8,8 +9,11 @@ class TriageRequest(BaseModel):
     text: str
 
 
+# Toggle via env var; default is baseline (TF-IDF)
+USE_TRANSFORMER = os.getenv("USE_TRANSFORMER", "false").lower() == "true"
+
 app = FastAPI()
-pipeline = TriagePipeline(use_transformer=False)
+pipeline = TriagePipeline(use_transformer=USE_TRANSFORMER)
 
 
 @app.get("/health")

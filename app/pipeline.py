@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from .models.classifier import IncidentClassifier, TransformerIncidentClassifier
-
+from .models.classifier import IncidentClassifier
+from .models.transformer_classifier import TransformerIncidentClassifier
 
 
 @dataclass
