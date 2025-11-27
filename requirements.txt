@@ -3,3 +3,5 @@ uvicorn
 pytest
 pandas
 scikit-learn
+sentence-transformers
+httpx
