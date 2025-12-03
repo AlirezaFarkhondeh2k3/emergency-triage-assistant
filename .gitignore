@@ -1,13 +1,35 @@
+# Data (not needed on GitHub)
 data/raw/
 data/processed/
-.venv/
 
+# Virtualenv
+.venv/
+venv/
+env/
+
+# Python bytecode
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-app/models/artifacts/
-app/models/transformer_artifacts/
+# IDE configs
+.vscode/
+.idea/
 
-app/models/rag_artifacts/
+# OS junk
+.DS_Store
+Thumbs.db
 
+# Ollama logs or temp (if any)
+ollama.log
 
+# Big local model files you do NOT want on GitHub
+*.npy
+*.pt
+*.bin
+*.onnx
+*.ckpt
+
+# If you have a big embedding file, ignore it explicitly
+app/models/rag_artifacts/embeddings.npy

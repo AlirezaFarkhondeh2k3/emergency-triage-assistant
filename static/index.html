@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Emergency Triage Assistant</title>
+  <style>
+    :root {
+      --bg: #05070d;
+      --bg-panel: #0c111c;
+      --bg-panel-alt: #0f1724;
+      --accent: #14b8a6;
+      --accent-strong: #0ea5e9;
+      --accent-soft: rgba(20, 184, 166, 0.14);
+      --warn: #f59e0b;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #ef4444;
+      --border-subtle: rgba(148, 163, 184, 0.25);
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #0f172a 0, #0a0f1a 45%, #030712 100%);
+      color: var(--text-main);
+    }
+
+    .app-shell {
+      max-width: 1240px;
+      margin: 24px auto;
+      padding: 0 16px 32px;
+    }
+
+    header.app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 18px;
+      gap: 12px;
+    }
+
+    .app-title {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .app-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 620px;
+      line-height: 1.5;
+    }
+
+    .status-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.9);
+      white-space: nowrap;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.15fr);
+      gap: 18px;
+    }
+
+    .panel {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.9));
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 520px;
+    }
+
+    .panel h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      letter-spacing: 0.02em;
+    }
+
+    .chat-panel {
+      min-height: 540px;
+      max-height: calc(100vh - 160px);
+    }
+
+    .chat-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-bottom: 12px;
+      max-height: 100%;
+    }
+
+    .msg-row {
+      display: flex;
+      margin-bottom: 10px;
+    }
+
+    .msg-row.user {
+      justify-content: flex-end;
+    }
+
+    .msg-bubble {
+      max-width: 78%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .msg-row.user .msg-bubble {
+      border-bottom-right-radius: 4px;
+      background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+      color: white;
+    }
+
+    .msg-row.assistant .msg-bubble {
+      border-bottom-left-radius: 4px;
+      background: #0b1220;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .msg-bubble.typing {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #0b1220;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--text-muted);
+      opacity: 0.4;
+      animation: typing-bounce 1s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    @keyframes typing-bounce {
+      0%,
+      60%,
+      100% {
+        transform: translateY(0);
+        opacity: 0.3;
+      }
+      30% {
+        transform: translateY(-4px);
+        opacity: 0.9;
+      }
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding-top: 4px;
+      border-top: 1px solid rgba(31, 41, 55, 0.9);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: #0b1220;
+      border-radius: 999px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      color: var(--text-main);
+      padding: 10px 14px;
+      font-size: 14px;
+      resize: none;
+      min-height: 42px;
+      max-height: 120px;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.5);
+    }
+
+    .send-btn {
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+      color: white;
+      padding: 10px 20px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      min-width: 88px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 10px 20px rgba(20, 184, 166, 0.35);
+    }
+
+    .send-btn[disabled] {
+      opacity: 0.55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .send-spinner {
+      width: 13px;
+      height: 13px;
+      border-radius: 999px;
+      border: 2px solid rgba(248, 250, 252, 0.25);
+      border-top-color: white;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .status-section {
+      margin-bottom: 14px;
+    }
+
+    .status-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .status-value {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .badge-severity-high {
+      background: rgba(248, 113, 113, 0.2);
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: #fecaca;
+      font-size: 12px;
+      border: 1px solid #f87171;
+    }
+
+    .badge-severity-medium {
+      background: rgba(245, 158, 11, 0.2);
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: #fcd34d;
+      font-size: 12px;
+      border: 1px solid #f59e0b;
+    }
+
+    .badge-severity-low {
+      background: rgba(34, 211, 238, 0.18);
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: #a5f3fc;
+      font-size: 12px;
+      border: 1px solid #22d3ee;
+    }
+
+    .badge-category-fire {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fecdd3;
+      border: 1px solid #ef4444;
+    }
+
+    .badge-category-flood {
+      background: rgba(14, 165, 233, 0.14);
+      color: #bae6fd;
+      border: 1px solid #0ea5e9;
+    }
+
+    .badge-category-other {
+      background: rgba(156, 163, 175, 0.18);
+      color: #e5e7eb;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+    }
+
+    .risk-chip {
+      display: inline-flex;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      margin: 3px 4px 0 0;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .risk-chip.detected {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: #f87171;
+      color: #fecaca;
+    }
+
+    .risk-chip.possible {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: #22d3ee;
+      color: #a5f3fc;
+    }
+
+    .risk-chip.unknown {
+      background: rgba(15, 23, 42, 0.9);
+      border-color: rgba(148, 163, 184, 0.4);
+      color: #9ca3af;
+    }
+
+    .status-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .triage-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      border: 1px solid #f59e0b;
+      background: rgba(245, 158, 11, 0.15);
+      color: #fcd34d;
+      margin-top: 6px;
+    }
+
+    .panel-box {
+      background: var(--bg-panel-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+
+    .guidance {
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .summary {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .chip {
+      display: inline-flex;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: var(--accent-soft);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+    }
+
+    @media (max-width: 900px) {
+      .main-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .panel {
+        min-height: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <div class="app-title">Emergency Triage Assistant</div>
+        <div class="app-subtitle">
+          Describe the situation. The assistant keeps track of the full conversation and updates category, severity,
+          location, and guidance.
+        </div>
+      </div>
+      <div class="status-pill">Live triage</div>
+    </header>
+
+    <div class="main-layout">
+      <div class="panel chat-panel">
+        <div id="messages" class="chat-scroll"></div>
+        <div class="chat-input-row">
+          <textarea id="input" class="chat-input" placeholder="Describe what is happening..." aria-label="Message input"></textarea>
+          <button id="send-btn" class="send-btn" aria-label="Send message">Send</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Incident overview</h3>
+        <div class="status-section">
+          <div class="status-label">Detected status</div>
+          <div id="pills" class="status-pill-row"></div>
+          <div id="triage-status" class="triage-badge" style="display:none;"></div>
+        </div>
+
+        <div class="status-section">
+          <div class="status-label">Location</div>
+          <div id="location" class="status-value">Location: -</div>
+        </div>
+
+        <div class="status-section">
+          <div class="status-label">Guidance</div>
+          <div class="panel-box guidance" id="guidance">No incident analyzed yet.</div>
+        </div>
+
+        <div class="status-section">
+          <div class="status-label">Summary</div>
+          <div class="panel-box summary" id="summary">-</div>
+        </div>
+
+        <div class="status-section">
+          <div class="status-label">People affected</div>
+          <div class="panel-box" id="people-affected">Not enough information</div>
+        </div>
+
+        <div class="status-section">
+          <div class="status-label">Risk factors</div>
+          <div class="panel-box">
+            <div id="risk-factors"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("send-btn");
+    const pills = document.getElementById("pills");
+    const locationEl = document.getElementById("location");
+    const guidanceEl = document.getElementById("guidance");
+    const summaryEl = document.getElementById("summary");
+    const triageStatusEl = document.getElementById("triage-status");
+    const peopleEl = document.getElementById("people-affected");
+    const riskEl = document.getElementById("risk-factors");
+
+    const messages = [];
+    let typingBubble = null;
+
+    function appendMessage(role, text) {
+      const row = document.createElement("div");
+      row.className = "msg-row " + role;
+
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble";
+      bubble.textContent = text;
+
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+      row.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+
+    function showTyping() {
+      if (typingBubble) return;
+
+      const row = document.createElement("div");
+      row.className = "msg-row assistant";
+
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble typing";
+
+      for (let i = 0; i < 3; i++) {
+        const dot = document.createElement("div");
+        dot.className = "typing-dot";
+        bubble.appendChild(dot);
+      }
+
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+      row.scrollIntoView({ behavior: "smooth", block: "end" });
+
+      typingBubble = row;
+    }
+
+    function hideTyping() {
+      if (!typingBubble) return;
+      typingBubble.remove();
+      typingBubble = null;
+    }
+
+    function estimatePeopleAffected(summaryText) {
+      if (!summaryText || !summaryText.trim()) return "Not enough information";
+      const text = summaryText.toLowerCase();
+      let count = 1;
+
+      const oneChildPhrases = [
+        "me and my son",
+        "my son and i",
+        "me and my daughter",
+        "my daughter and i",
+        "me and my kid",
+        "me and my child",
+        "only me and my son",
+        "only me and my daughter",
+      ];
+      if (oneChildPhrases.some((p) => text.includes(p))) {
+        count = 2;
+      } else {
+        const familyPatterns = [
+          /my son\b/i,
+          /my daughter\b/i,
+          /my child\b/i,
+          /my kid\b/i,
+          /my wife\b/i,
+          /my husband\b/i,
+          /my mother\b/i,
+          /my father\b/i,
+          /my parents\b/i,
+        ];
+        familyPatterns.forEach((pat) => {
+          if (pat.test(summaryText)) count += 1;
+        });
+        const numMatch = summaryText.match(/(\d+)\s+(other people|other persons|people|persons|injured|hurt)/i);
+        if (numMatch) {
+          const n = parseInt(numMatch[1], 10);
+          if (!Number.isNaN(n)) {
+            count = 1 + n;
+          }
+        }
+      }
+
+      if (count <= 1) return "Approx: only you";
+      if (count === 2) return "Approx: you + 1 other";
+      return "Approx: you + " + (count - 1) + " others";
+    }
+
+    function cleanDetail(text) {
+      if (!text) return "Not available";
+      let t = text;
+      t = t.replace(/\bhi[,! ]+i need help\b/gi, "");
+      t = t.replace(/\bhello[,! ]+i need help\b/gi, "");
+      t = t.replace(/\bhi[,! ]+i need some help\b/gi, "");
+      t = t.replace(/\bhello[,! ]+i need some help\b/gi, "");
+      t = t.replace(/\s+/g, " ").trim();
+      if (!t) return "Not available";
+      return t;
+    }
+
+    function buildAdminSummary(triage, peopleLabel) {
+      const cat = (triage.category || "other").toLowerCase();
+      let catLabel;
+      if (cat === "flood") catLabel = "flood incident";
+      else if (cat === "fire") catLabel = "fire incident";
+      else if (cat === "storm") catLabel = "storm incident";
+      else if (cat === "landslide") catLabel = "landslide incident";
+      else if (cat === "earthquake") catLabel = "earthquake incident";
+      else catLabel = "other incident";
+
+      const locationPart = triage.location && triage.location.trim() ? triage.location.trim() : "unspecified location";
+      const severityPart = triage.severity ? triage.severity.toLowerCase() : "unknown-severity";
+
+      let detail = cleanDetail((triage.summary || "").trim());
+      if (detail.length > 180) detail = detail.slice(0, 177) + "...";
+
+      if (!detail) {
+        return "Reporter at " + locationPart + " reports a " + severityPart + " " + catLabel + ". People affected: " + peopleLabel + ".";
+      }
+
+      return (
+        "Reporter at " +
+        locationPart +
+        " reports a " +
+        severityPart +
+        " " +
+        catLabel +
+        ". People affected: " +
+        peopleLabel +
+        ". Key details: " +
+        detail
+      );
+    }
+
+    function computeRiskState(summaryText, severity) {
+      const text = (summaryText || "").toLowerCase();
+      const items = [
+        { label: "Smoke inhalation", match: ["smoke", "coughing", "hard to breathe", "difficulty breathing"] },
+        { label: "Trapped / cannot exit", match: ["trapped", "can't get out", "cant get out", "cannot get out", "stuck", "blocked exit"] },
+        { label: "Unconscious / not responsive", match: ["unconscious", "passed out", "not moving", "no response"] },
+        { label: "Heavy bleeding", match: ["bleeding", "blood everywhere", "blood loss"] },
+      ];
+      return items.map((item) => {
+        const detected = item.match.some((kw) => text.includes(kw.toLowerCase()));
+        let state = "unknown";
+        if (detected) state = "detected";
+        else if (severity === "high") state = "possible";
+        return { label: item.label, state };
+      });
+    }
+
+    function renderRiskTags(risks) {
+      riskEl.innerHTML = "";
+      risks.forEach((r) => {
+        const chip = document.createElement("span");
+        chip.className = "risk-chip " + r.state;
+        chip.textContent = r.label + " - " + r.state.charAt(0).toUpperCase() + r.state.slice(1);
+        riskEl.appendChild(chip);
+      });
+    }
+
+    function renderStatusBadge(severity, category) {
+      const sev = (severity || "").toLowerCase();
+      let text = "";
+      if (sev === "high") text = "Escalated - high priority incident";
+      else if (sev === "medium") text = "Active - situation being monitored";
+      else text = "Logged - low severity incident";
+      triageStatusEl.style.display = "inline-block";
+      triageStatusEl.textContent = text + (category ? " (" + category.toLowerCase() + ")" : "");
+    }
+
+    function updateStatusPanel(data) {
+      const category = (data.category || "unknown").toUpperCase();
+      const severity = (data.severity || "unknown").toLowerCase();
+      const location = data.location || "";
+      const summaryText = data.summary || "";
+
+      pills.innerHTML = "";
+      const catPill = document.createElement("span");
+      const catClass = "badge-category-" + category.toLowerCase();
+      catPill.className = "chip " + catClass;
+      catPill.textContent = category;
+
+      const sevPill = document.createElement("span");
+      const sevClass = severity === "high" ? "badge-severity-high" : severity === "medium" ? "badge-severity-medium" : "badge-severity-low";
+      sevPill.className = sevClass;
+      sevPill.textContent = "Severity: " + severity;
+
+      pills.appendChild(catPill);
+      pills.appendChild(sevPill);
+
+      locationEl.textContent = "Location: " + (location || "not provided");
+      guidanceEl.textContent = data.guidance || "No guidance available.";
+      const peopleLabel = estimatePeopleAffected(summaryText);
+      summaryEl.textContent = buildAdminSummary(data, peopleLabel);
+
+      renderStatusBadge(severity, category);
+      peopleEl.textContent = peopleLabel || "Not enough information";
+
+      const risks = computeRiskState(summaryText, severity);
+      renderRiskTags(risks);
+    }
+
+    function buildTriagePayload() {
+      return { messages };
+    }
+
+    async function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      appendMessage("user", text);
+      messages.push({ role: "user", content: text });
+      inputEl.value = "";
+      inputEl.focus();
+
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = '<span class="send-spinner"></span>';
+      inputEl.disabled = true;
+      showTyping();
+
+      try {
+        const payload = buildTriagePayload();
+
+        const resp = await fetch("/triage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await resp.json();
+
+        hideTyping();
+        sendBtn.disabled = false;
+        sendBtn.textContent = "Send";
+        inputEl.disabled = false;
+
+        const reply = data.reply || data.guidance || "[No reply from triage]";
+        appendMessage("assistant", reply);
+        messages.push({ role: "assistant", content: reply });
+        updateStatusPanel(data);
+      } catch (err) {
+        console.error(err);
+        hideTyping();
+        sendBtn.disabled = false;
+        sendBtn.textContent = "Send";
+        inputEl.disabled = false;
+
+        appendMessage(
+          "assistant",
+          "Sorry, something went wrong while processing your message. If this is an emergency, contact local emergency services immediately."
+        );
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>

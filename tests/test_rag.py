@@ -1,33 +1,23 @@
-from app.models.rag import IncidentRAG
+from app.models.rag import RAGGuidance
 
 
 def test_rag_returns_guidance_for_known_category():
-    rag = IncidentRAG()
+    rag = RAGGuidance()
 
-    result = rag.retrieve(
-        text="Strong shaking, people evacuating buildings in the city center.",
-        category="earthquake",
-    )
+    summary = "Strong shaking, people evacuating buildings in the city center."
+    guidance = rag.generate_guidance(summary, category="earthquake", severity="high")
 
-    # Should preserve the category we pass in
-    assert result.category == "earthquake"
-    # Should return some non empty guidance
-    assert isinstance(result.guidance, str)
-    assert len(result.guidance.strip()) > 0
-    # Should have retrieved at least one document
-    assert len(result.retrieved_docs) >= 1
+    assert isinstance(guidance, str)
+    assert guidance.strip()  # non-empty text
+    # should at least mention severity or type in a generic way
+    assert "severity" in guidance.lower() or "earthquake" in guidance.lower()
 
 
 def test_rag_handles_unknown_category_with_fallback_guidance():
-    rag = IncidentRAG()
+    rag = RAGGuidance()
 
-    result = rag.retrieve(
-        text="Something strange is happening, not sure what type of incident this is.",
-        category="some_unknown_category",
-    )
+    summary = "Something strange is happening, not sure what type of incident this is."
+    guidance = rag.generate_guidance(summary, category="some_unknown_category", severity="high")
 
-    # Should preserve the unknown label we pass in
-    assert result.category == "some_unknown_category"
-    # Should still return some guidance (generic fallback is acceptable)
-    assert isinstance(result.guidance, str)
-    assert len(result.guidance.strip()) > 0
+    assert isinstance(guidance, str)
+    assert guidance.strip()
