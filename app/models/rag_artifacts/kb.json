@@ -1,0 +1,96 @@
+[
+  {
+    "id": "eq_basic_safety",
+    "category": "earthquake",
+    "title": "Indoor safety during an earthquake",
+    "content": "If you are indoors during an earthquake, drop, cover, and hold on. Stay away from windows, glass, and heavy furniture that can fall.",
+    "tags": [
+      "earthquake",
+      "indoor",
+      "immediate"
+    ]
+  },
+  {
+    "id": "eq_aftershock",
+    "category": "earthquake",
+    "title": "Aftershocks and evacuation",
+    "content": "Expect aftershocks after the main earthquake. Once shaking stops, evacuate to an open area away from buildings, bridges, and power lines.",
+    "tags": [
+      "earthquake",
+      "aftershock",
+      "evacuation"
+    ]
+  },
+  {
+    "id": "flood_general",
+    "category": "flood",
+    "title": "General flood safety",
+    "content": "Move to higher ground immediately. Avoid walking or driving through flood water. Just 30 cm of fast moving water can knock an adult off their feet.",
+    "tags": [
+      "flood",
+      "general"
+    ]
+  },
+  {
+    "id": "flood_vehicle",
+    "category": "flood",
+    "title": "Driving in flood water",
+    "content": "Do not drive through flooded roads. As little as 30 cm of moving water can sweep a car away. Turn around and find an alternative route.",
+    "tags": [
+      "flood",
+      "vehicle"
+    ]
+  },
+  {
+    "id": "storm_wind",
+    "category": "hurricane_typhoon_cyclone",
+    "title": "High wind and debris",
+    "content": "Stay in an interior room away from windows and glass. Secure loose objects and avoid going outside during peak winds.",
+    "tags": [
+      "hurricane",
+      "wind",
+      "debris"
+    ]
+  },
+  {
+    "id": "storm_surge",
+    "category": "hurricane_typhoon_cyclone",
+    "title": "Storm surge and coastal flooding",
+    "content": "If you are in a coastal or low lying area, follow evacuation orders. Storm surge can quickly flood roads and buildings.",
+    "tags": [
+      "hurricane",
+      "storm_surge",
+      "coastal"
+    ]
+  },
+  {
+    "id": "tornado_shelter",
+    "category": "tornado",
+    "title": "Sheltering from a tornado",
+    "content": "Go to a small interior room on the lowest floor, away from windows. Cover your head and neck with your arms or a sturdy object.",
+    "tags": [
+      "tornado",
+      "shelter"
+    ]
+  },
+  {
+    "id": "fire_building",
+    "category": "fire",
+    "title": "Building fire evacuation",
+    "content": "If there is a fire in the building, evacuate immediately if it is safe. Use stairs, not elevators, and stay low under smoke.",
+    "tags": [
+      "fire",
+      "evacuation"
+    ]
+  },
+  {
+    "id": "generic_help",
+    "category": "other",
+    "title": "General emergency guidance",
+    "content": "Move away from immediate danger if you can do so safely. Call local emergency services, describe the situation clearly, and follow their instructions.",
+    "tags": [
+      "general",
+      "other"
+    ]
+  }
+]

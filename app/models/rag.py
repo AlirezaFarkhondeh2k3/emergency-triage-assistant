@@ -1,84 +1,82 @@
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Dict, List
-
 import json
-import numpy as np
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+
+from app.config import RAG_ARTIFACTS_DIR
 
 
-@dataclass
-class RAGResult:
-    category: str
-    guidance: str
-    retrieved_docs: List[Dict[str, Any]]
+class RAGGuidance:
+    """
+    Very light weight knowledge base lookup:
+      - loads kb.json from RAG_ARTIFACTS_DIR
+      - matches on category and severity
+      - returns a guidance text snippet
+    """
+
+    def __init__(self):
+        kb_path: Path = RAG_ARTIFACTS_DIR / "kb.json"
+        if kb_path.exists():
+            with kb_path.open("r", encoding="utf-8") as f:
+                self.kb: List[Dict[str, Any]] = json.load(f)
+        else:
+            self.kb = []
+
+    def _match_doc(self, category: str, severity: str) -> str:
+        # expect docs like {"category": "flood", "severity": "high", "text": "..."}
+        for doc in self.kb:
+            if doc.get("category") == category and doc.get("severity") == severity:
+                return doc.get("text", "")
+        # fallback: category only
+        for doc in self.kb:
+            if doc.get("category") == category:
+                return doc.get("text", "")
+        return ""
+
+    def generate_guidance(self, summary: str, category: str, severity: str) -> str:
+        kb_text = self._match_doc(category, severity)
+        if not kb_text:
+            kb_text = (
+                "Stay safe, avoid unnecessary risk, follow instructions from local "
+                "authorities, and contact emergency services in urgent situations."
+            )
+
+        return (
+            f"Based on your description, this appears to be a {severity} severity "
+            f"{category} situation. {kb_text}"
+        )
 
 
 class IncidentRAG:
     """
-    Embedding-based RAG over a small incident playbook.
+    Wrapper used by TriagePipeline.
 
-    Artifacts are built by scripts/build_rag_index.py:
-      - app/models/rag_artifacts/kb.json
-      - app/models/rag_artifacts/embeddings.npy
+    This gives the pipeline a stable interface (IncidentRAG) while letting
+    the implementation be a simple knowledge base lookup for now. Later you
+    can swap RAGGuidance for a real RAG stack without touching the pipeline.
     """
 
-    def __init__(self) -> None:
-        artifacts_dir = Path(__file__).resolve().parent / "rag_artifacts"
-        kb_path = artifacts_dir / "kb.json"
-        emb_path = artifacts_dir / "embeddings.npy"
+    def __init__(self):
+        self._guidance = RAGGuidance()
 
-        if not kb_path.exists() or not emb_path.exists():
-            raise FileNotFoundError(
-                f"RAG artifacts not found in {artifacts_dir}. "
-                "Run scripts/build_rag_index.py first."
-            )
-
-        with kb_path.open("r", encoding="utf-8") as f:
-            self.docs: List[Dict[str, Any]] = json.load(f)
-
-        self.embeddings: np.ndarray = np.load(emb_path)
-
-        # Same model used in build_rag_index
-        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-
-    def retrieve(
+    def generate_guidance(
         self,
-        text: str,
-        category: str | None = None,
-        top_k: int = 3,
-    ) -> RAGResult:
+        summary: str,
+        category: str,
+        severity: str,
+    ) -> str:
         """
-        Retrieve top_k guidance docs, optionally filtered by incident category.
+        Main entry point used by the pipeline.
+
+        If tests or the API expect a guidance string, this method should be
+        the one TriagePipeline calls.
         """
-        # Encode query text
-        query_emb = self.model.encode([text])
-        sims = cosine_similarity(query_emb, self.embeddings)[0]
+        return self._guidance.generate_guidance(summary, category, severity)
 
-        # Sort by similarity descending
-        idxs = np.argsort(-sims)
-
-        selected: List[Dict[str, Any]] = []
-        for i in idxs:
-            doc = self.docs[i]
-            if category is not None and doc.get("category") != category:
-                continue
-            selected.append(doc)
-            if len(selected) >= top_k:
-                break
-
-        if not selected:
-            guidance = (
-                "No specific playbook entry found. "
-                "Move away from immediate danger if possible and contact local emergency services."
-            )
-        else:
-            # Simple aggregation: concatenate contents
-            guidance = " ".join(d["content"] for d in selected)
-
-        return RAGResult(
-            category=category or "unknown",
-            guidance=guidance,
-            retrieved_docs=selected,
-        )
+    # Optional ergonomic aliases in case you call it differently elsewhere.
+    def __call__(
+        self,
+        summary: str,
+        category: str,
+        severity: str,
+    ) -> str:
+        return self.generate_guidance(summary, category, severity)
