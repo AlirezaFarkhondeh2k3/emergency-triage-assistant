@@ -272,7 +272,7 @@ requirements.txt
 
 # **📺 Demo / Preview**
 
-*(Add screenshots or GIFs here later.)*
+<img width="1089" height="1120" alt="image" src="https://github.com/user-attachments/assets/c31ef0ff-d831-4bf5-839a-a5a7440f5428" />
 
 ---
 
@@ -295,3 +295,4 @@ MIT License.
 Machine Learning & AI Engineer
 
 ---
+
